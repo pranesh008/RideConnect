@@ -1,6 +1,7 @@
 package com.example.socialapp
 
 import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -30,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.VisualTransformation
 
 
@@ -37,12 +39,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 @Composable
 fun RegisterScreen(navController: NavController) {
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var mobileNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val db = DatabaseHelper(context)
 
     // State variables for error messages
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -164,8 +170,40 @@ fun RegisterScreen(navController: NavController) {
             // Button click triggers validation
             Button(
                 onClick = {
-                    if (validateAllFields()) {
-                        // Proceed with registration
+                    // Validation checks
+                    when {
+                        name.isEmpty() -> {
+                            Toast.makeText(context, "Name cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                        email.isEmpty() -> {
+                            Toast.makeText(context, "Email cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                        mobileNumber.isEmpty() -> {
+                            Toast.makeText(context, "Mobile number cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                        password.isEmpty() -> {
+                            Toast.makeText(context, "Password cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                        confirmPassword.isEmpty() -> {
+                            Toast.makeText(context, "Confirm password cannot be empty", Toast.LENGTH_SHORT).show()
+                        }
+                        password != confirmPassword -> {
+                            Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                        }
+                        db.checkUser(email) -> {
+                            Toast.makeText(context, "User already exists", Toast.LENGTH_SHORT).show()
+                        }
+                        else -> {
+                            // Insert user into the database
+                            val result = db.addUser(name, email, mobileNumber, password)
+                            if (result > -1) {
+                                Toast.makeText(context, "User registered successfully", Toast.LENGTH_SHORT).show()
+                                // Navigate to another screen if needed
+                                navController.navigate("login")
+                            } else {
+                                Toast.makeText(context, "Registration failed", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
