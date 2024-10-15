@@ -11,12 +11,21 @@ fun Navigation() {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "login") {
+
+        //Login screen
         composable("login") {
             LoginScreen(navController = navController)
         }
-        composable("signup") {
+        composable("home") {
+            HomeScreen(navController = navController)
+        }
+
+        //Register screen
+        composable("register") {
             RegisterScreen(navController = navController)
         }
+
+
         composable("profile") {
             ProfileScreen(
                 username = "RiderName",

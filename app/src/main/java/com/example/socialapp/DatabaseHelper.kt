@@ -51,11 +51,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         values.put(COLUMN_MOBILE, mobile)
         values.put(COLUMN_PASSWORD, password)
 
-        // Inserting Row
-        val success = db.insert(TABLE_USER, null, values)
-
-        db.close() // Closing database connection
-        return success
+        // Inserting Row and checking for success
+        return try {
+            val success = db.insertOrThrow(TABLE_USER, null, values)
+            db.close() // Closing database connection
+            success
+        } catch (e: Exception) {
+            e.printStackTrace()
+            db.close()
+            -1  // Return -1 if there's an error during insertion
+        }
     }
 
     // Function to check if the user exists
@@ -66,6 +71,19 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         val exists = cursor.count > 0
         cursor.close()
+        db.close()  // Close the database after checking
+        return exists
+    }
+
+    // Function to check if the user with given mobile and password exists
+    fun checkUserCredentials(mobile: String, password: String): Boolean {
+        val db = this.readableDatabase
+        val query = "SELECT * FROM $TABLE_USER WHERE $COLUMN_MOBILE = ? AND $COLUMN_PASSWORD = ?"
+        val cursor = db.rawQuery(query, arrayOf(mobile, password))
+
+        val exists = cursor.count > 0
+        cursor.close()
+        db.close()
         return exists
     }
 }

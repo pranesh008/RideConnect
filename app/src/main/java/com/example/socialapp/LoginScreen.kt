@@ -1,8 +1,11 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.socialapp
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -16,17 +19,25 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.navigation
 import com.example.socialapp.R
+import androidx.compose.ui.platform.LocalContext
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
     val focusManager = LocalFocusManager.current
@@ -34,6 +45,8 @@ fun LoginScreen(navController: NavController) {
     var passwordVisible by remember {mutableStateOf(false)}
     var mobileNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
 
     // Using Box for stacking elements
     Box(
@@ -84,6 +97,16 @@ fun LoginScreen(navController: NavController) {
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -111,30 +134,72 @@ fun LoginScreen(navController: NavController) {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(painter = image, contentDescription = null, tint = Color.White)
                     }
-                },)
+                },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color.White
+                ),
+                )
             Spacer(modifier = Modifier.height(16.dp))
 
             // Login Button
             Button(
                 onClick = {
-                          //validate input
-                          if (mobileNumber.isEmpty() || password.isEmpty()) {
-                              errorMessage = "Enter both Mobile number and Password"
-                          } else {
-                              errorMessage = ""
-                          //TODO: perform login logic
-                          }
-                          },
+                    // Validate input fields
+                    if (mobileNumber.isEmpty() || password.isEmpty()) {
+                        errorMessage = "Enter both Mobile number and Password"
+                    } else {
+                        // If inputs are valid, attempt to log in
+                        val dbHelper = DatabaseHelper(context)
+                        val userExists = dbHelper.checkUserCredentials(mobileNumber, password)
+
+                        if (userExists) {
+                            // Navigate to the next screen or show success message
+                            errorMessage = "Login successful"
+                            navController.navigate("home") {// Navigate to home screen
+                                popUpTo("login") { inclusive = true } //remove login from back stack
+                            }
+                        }else {
+                            // Show error message if user not found
+                            errorMessage = "Invalid mobile number or password"
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Login")
             }
 
+
             Spacer(modifier = Modifier.height(8.dp))
 
             // Create New Account Button
             TextButton(onClick = { navController.navigate("register") }) {
-                Text("Don't have an account? Register", color = Color.White)
+                val annotatedText = buildAnnotatedString {
+                    append("Don't have an account? ")
+
+                    // Create a hyperlink style for the word "Register"
+                    pushStringAnnotation(tag = "register", annotation = "register")
+                    withStyle(style = SpanStyle(color = Color.Blue, fontWeight = FontWeight.Bold)) {
+                        append("Register")
+                    }
+                    pop()
+                }
+                ClickableText(
+                    text = annotatedText,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.White, fontSize = 16.sp),
+                    onClick = { offset ->
+                        annotatedText.getStringAnnotations(tag = "register", start = offset, end = offset)
+                            .firstOrNull()?.let {
+                                navController.navigate("register")  // Navigate to the Register screen
+                            }
+                    }
+                )
             }
         }
     }
